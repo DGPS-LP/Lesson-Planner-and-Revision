@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DGPS Lesson Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+  :root{--teal:#1D9E75;--teal-lt:#E1F5EE;--teal-dk:#085041;--purple:#534AB7;--purple-lt:#EEEDFE;--purple-dk:#26215C;--amber:#D97706;--amber-lt:#FAEEDA;--amber-dk:#633806;--coral:#C2410C;--coral-lt:#FAECE7;--coral-dk:#712B13;--grey-dk:#2C2C2A;--grey-mid:#666666;--grey-lt:#F5F5F3;--white:#FFFFFF;--border:#E5E5E3;--shadow:0 2px 12px rgba(0,0,0,0.07);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#F8F7F5;color:var(--grey-dk);min-height:100vh;}
+  .app-header{background:var(--grey-dk);padding:18px 32px;}
+  .school-name{font-family:'DM Serif Display',serif;font-size:18px;color:var(--white);}
+  .tool-name{font-size:13px;color:#888;margin-top:1px;}
+  .app-body{max-width:820px;margin:0 auto;padding:36px 24px 60px;}
+  .progress-wrap{margin-bottom:28px;}
+  .progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:10px;}
+  .progress-fill{height:100%;background:var(--teal);border-radius:2px;transition:width 0.4s ease;}
+  .progress-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--grey-mid);}
+  .ctx-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;min-height:24px;}
+  .ctx-pill{background:var(--teal-lt);color:var(--teal-dk);font-size:11px;font-weight:600;padding:4px 11px;border-radius:999px;}
+  .step-card{background:var(--white);border-radius:16px;padding:32px 36px;box-shadow:var(--shadow);border:1px solid var(--border);}
+  .step-question{font-family:'DM Serif Display',serif;font-size:22px;color:var(--grey-dk);margin-bottom:6px;line-height:1.3;}
+  .step-hint{font-size:13px;color:var(--grey-mid);line-height:1.6;margin-bottom:22px;}
+  .chip-group{display:flex;flex-wrap:wrap;gap:9px;}
+  .chip{padding:9px 18px;border-radius:999px;border:1.5px solid var(--border);font-size:13.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--grey-mid);background:var(--white);transition:all 0.15s;}
+  .chip:hover{border-color:var(--teal);color:var(--teal-dk);}
+  .chip.on{background:var(--teal-lt);border-color:var(--teal);color:var(--teal-dk);font-weight:600;}
+  .mode-chip{padding:16px 24px;text-align:center;border-radius:12px;min-width:180px;}
+  .mode-chip.on{background:var(--purple-lt);border-color:var(--purple);color:var(--purple-dk);}
+  textarea,input[type=text],input[type=number]{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:13px 15px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--grey-dk);background:var(--white);outline:none;transition:border-color 0.15s;}
+  textarea{resize:vertical;line-height:1.6;}
+  textarea:focus,input:focus{border-color:var(--teal);}
+  .lq-box{background:var(--purple-lt);border:1.5px solid var(--purple);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+  .lq-label{font-size:11px;font-weight:600;color:var(--purple-dk);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+  .lq-text{font-size:16px;font-weight:500;color:var(--purple-dk);margin-bottom:14px;line-height:1.4;}
+  .lq-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .lq-btn{padding:8px 16px;border-radius:999px;border:1.5px solid var(--purple);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+  .lq-accept{background:var(--purple);color:var(--white);}
+  .lq-edit{background:transparent;color:var(--purple-dk);}
+  .lq-regen{background:transparent;color:var(--purple-dk);border-color:var(--border);}
+  .mtp-bar{margin-top:18px;padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.55;display:none;}
+  .mtp-bar.show{display:block;}
+  .mtp-found{background:var(--teal-lt);color:var(--teal-dk);border-left:3px solid var(--teal);}
+  .mtp-partial{background:var(--amber-lt);color:var(--amber-dk);border-left:3px solid var(--amber);}
+  .mtp-missing{background:var(--coral-lt);color:var(--coral-dk);border-left:3px solid var(--coral);}
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px;}
+  .btn{padding:11px 26px;border-radius:999px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all 0.15s;}
+  .btn-back{background:transparent;color:var(--grey-mid);}
+  .btn-back:hover{background:var(--grey-lt);}
+  .btn-next{background:var(--teal);color:var(--white);border-color:var(--teal);padding:11px 32px;}
+  .btn-next:hover{background:var(--teal-dk);}
+  .btn-next:disabled{opacity:0.4;cursor:not-allowed;}
+  .err{font-size:13px;color:#A32D2D;background:#FCEBEB;padding:10px 14px;border-radius:8px;margin-top:12px;display:none;}
+  .err.show{display:block;}
+  .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-screen{text-align:center;padding:60px 20px;}
+  .loading-title{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:8px;}
+  .loading-sub{font-size:13px;color:var(--grey-mid);}
+  .result-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
+  .result-title{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px;}
+  .result-sub{font-size:13px;color:var(--grey-mid);}
+  .dl-btn{padding:11px 22px;background:var(--teal);color:var(--white);border:none;border-radius:999px;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;}
+  .dl-btn:hover{background:var(--teal-dk);}
+  .dl-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .plan-sec{background:var(--white);border-radius:12px;border:1px solid var(--border);padding:20px 24px;margin-bottom:12px;}
+  .plan-sec-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--teal);margin-bottom:8px;}
+  .plan-sec-body{font-size:13.5px;line-height:1.7;}
+  .plan-sec-body ul{padding-left:16px;}
+  .plan-sec-body li{margin-bottom:3px;}
+  .phase-block{border-radius:12px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);}
+  .phase-hdr{padding:12px 20px;font-size:13px;font-weight:600;}
+  .phase-body{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+  .phase-col{padding:16px 20px;border-top:1px solid var(--border);}
+  .phase-col:nth-child(2){border-left:1px solid var(--border);}
+  .phase-col:nth-child(3){border-top:1px solid var(--border);}
+  .phase-col:nth-child(4){border-top:1px solid var(--border);border-left:1px solid var(--border);}
+  .phase-col-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;}
+  .phase-col-body{font-size:12.5px;line-height:1.65;}
+  .phase-col-body ul{padding-left:14px;}
+  .phase-col-body li{margin-bottom:2px;}
+  .seq-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;align-items:flex-start;gap:16px;transition:border-color 0.3s;}
+  .seq-num{width:32px;height:32px;border-radius:50%;background:var(--teal);color:var(--white);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .seq-lq{font-size:14px;font-weight:500;margin-bottom:4px;}
+  .seq-nc{font-size:12px;color:var(--grey-mid);font-style:italic;}
+  .seq-focus{font-size:12px;color:var(--grey-mid);margin-top:4px;}
+  .seq-status{font-size:12px;color:var(--grey-mid);margin-left:auto;flex-shrink:0;padding-top:2px;}
+  .seq-status.done{color:var(--teal-dk);font-weight:600;}
+  .seq-status.active{color:var(--amber-dk);font-weight:600;}
+  .restart-btn{display:block;margin:24px auto 0;padding:10px 28px;background:transparent;border:1.5px solid var(--border);border-radius:999px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--grey-mid);cursor:pointer;}
+  .restart-btn:hover{background:var(--grey-lt);}
+  .gen-all-btn{padding:13px 28px;background:var(--teal);color:var(--white);border:none;border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;}
+  .gen-all-btn:hover{background:var(--teal-dk);}
+  .gen-all-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .ph1{background:var(--purple-lt);color:var(--purple-dk);}
+  .ph2{background:var(--teal-lt);color:var(--teal-dk);}
+  .ph3{background:var(--amber-lt);color:var(--amber-dk);}
+  .ph4{background:var(--coral-lt);color:var(--coral-dk);}
+  .ph-pill{font-size:11px;font-weight:600;padding:4px 12px;border-radius:999px;display:inline-block;}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="school-name">DGPS Lesson Planner</div>
+  <div class="tool-name">International British Curriculum · Dubai</div>
+</header>
+<main class="app-body">
+
+  <!-- Key screen -->
+  <div id="key-screen" style="display:none;">
+    <div style="max-width:460px;margin:60px auto;">
+      <div class="step-card">
+        <p class="step-question">Welcome to DGPS Lesson Planner</p>
+        <p class="step-hint">Enter your Anthropic API key to get started. Stored only on this device.</p>
+        <input type="password" id="key-inp" placeholder="sk-ant-..." style="margin-bottom:8px;"/>
+        <div id="key-err" class="err">Please enter a valid key starting with sk-ant-</div>
+        <button class="btn btn-next" style="width:100%;margin-top:12px;" onclick="saveKey()">Save & Start Planning</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode screen -->
+  <div id="mode-screen" style="display:none;">
+    <div class="step-card">
+      <p class="step-question">What would you like to plan?</p>
+      <p class="step-hint">Plan a single lesson or create a full NC-aligned sequence of lessons for a unit.</p>
+      <div class="chip-group" style="gap:16px;margin-top:8px;margin-bottom:24px;">
+        <div class="chip mode-chip" onclick="selectMode('single',this)">
+          <div style="font-size:20px;margin-bottom:6px;">📄</div>
+          <div style="font-weight:600;margin-bottom:4px;">Single lesson</div>
+          <div style="font-size:12px;color:var(--grey-mid);">One plan + PDF</div>
+        </div>
+        <div class="chip mode-chip" onclick="selectMode('sequence',this)">
+          <div style="font-size:20px;margin-bottom:6px;">📚</div>
+          <div style="font-weight:600;margin-bottom:4px;">Lesson sequence</div>
+          <div style="font-size:12px;color:var(--grey-mid);">Multiple NC-aligned lessons</div>
+        </div>
+        <div class="chip mode-chip" onclick="selectMode('revision',this)">
+          <div style="font-size:20px;margin-bottom:6px;">📊</div>
+          <div style="font-weight:600;margin-bottom:4px;">Revision lesson</div>
+          <div style="font-size:12px;color:var(--grey-mid);">Based on Summer 2025 PT data</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <button class="btn btn-back" onclick="restart()" style="visibility:visible;">← Start again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revision screen -->
+  <div id="rev-screen" style="display:none;">
+    <div class="step-card">
+      <p class="step-question">Revision lesson</p>
+      <p class="step-hint">Select year group and subject to see your Summer 2025 PT results. Pick a strand — the planner builds a full lesson around it.</p>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Year group</div>
+        <div class="chip-group" id="rv-y">
+          <div class="chip" onclick="rvY('Year 2',this)">Year 2</div>
+          <div class="chip" onclick="rvY('Year 3',this)">Year 3</div>
+          <div class="chip" onclick="rvY('Year 4',this)">Year 4</div>
+          <div class="chip" onclick="rvY('Year 5',this)">Year 5</div>
+          <div class="chip" onclick="rvY('Year 6',this)">Year 6</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Subject</div>
+        <div class="chip-group" id="rv-s">
+          <div class="chip" onclick="rvS('English / Literacy',this)">English</div>
+          <div class="chip" onclick="rvS('Maths',this)">Maths</div>
+          <div class="chip" id="rv-sci" onclick="rvS('Science',this)">Science</div>
+        </div>
+      </div>
+      <div id="rv-strands" style="display:none;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Strand to focus on <span style="font-weight:400;text-transform:none;">— weakest 3 marked</span></div>
+        <div class="chip-group" id="rv-sc"></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Or type your own focus</div>
+        <input type="text" id="rv-custom" placeholder="e.g. Adding fractions with different denominators" />
+      </div>
+      <div class="err" id="rv-err"></div>
+      <div class="nav">
+        <button class="btn btn-back" onclick="showMode()">Back</button>
+        <button class="btn btn-next" onclick="rvGo()">Build revision plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Planner steps -->
+  <div id="planner" style="display:none;">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+      <div class="progress-meta"><span id="step-lbl"></span><span id="step-name"></span></div>
+    </div>
+    <div class="ctx-bar" id="ctx"></div>
+    <div class="step-card">
+      <div id="step-content"></div>
+      <div class="mtp-bar" id="mtp-bar"></div>
+      <div class="err" id="step-err"></div>
+      <div class="nav">
+        <button class="btn btn-back" id="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn btn-next" id="btn-next" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sequence count screen -->
+  <div id="seq-count-screen" style="display:none;">
+    <div class="step-card">
+      <p class="step-question">How many lessons in this sequence?</p>
+      <p class="step-hint">Claude will use National Curriculum objectives to build a coherent sequence with clear progression lesson by lesson.</p>
+      <div class="chip-group" id="seq-chips" style="margin-bottom:20px;">
+        <div class="chip" onclick="setSeqN(2,this)">2 lessons</div>
+        <div class="chip" onclick="setSeqN(3,this)">3 lessons</div>
+        <div class="chip" onclick="setSeqN(4,this)">4 lessons</div>
+        <div class="chip" onclick="setSeqN(5,this)">5 lessons</div>
+        <div class="chip" onclick="setSeqN(6,this)">6 lessons</div>
+        <div class="chip" onclick="setSeqN(7,this)">7 lessons</div>
+        <div class="chip" onclick="setSeqN(8,this)">8 lessons</div>
+      </div>
+      <div style="font-size:13px;color:var(--grey-mid);margin-bottom:8px;">Or enter a number:</div>
+      <input type="number" id="seq-n-inp" min="2" max="12" placeholder="e.g. 5" style="width:120px;"/>
+      <div class="err" id="seq-count-err"></div>
+      <div class="nav">
+        <button class="btn btn-back" onclick="showMode()">← Back</button>
+        <button class="btn btn-next" onclick="confirmSeqCount()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LQ screen -->
+  <div id="lq-screen" style="display:none;">
+    <div class="step-card">
+      <p class="step-question">Review your Learning Question</p>
+      <p class="step-hint">Claude has generated a Learning Question based on your topic. Accept it, edit it, or generate a new one.</p>
+      <div class="lq-box">
+        <div class="lq-label">Learning Question — review and edit if needed</div>
+        <div class="lq-text" id="lq-text">Generating…</div>
+        <textarea id="lq-edit-inp" rows="2" style="margin-top:10px;margin-bottom:12px;font-size:14px;border:1.5px solid var(--purple);border-radius:8px;padding:10px 12px;width:100%;font-family:DM Sans,sans-serif;display:none;" placeholder="Edit your Learning Question here…"></textarea>
+        <div class="lq-actions">
+          <button class="lq-btn lq-accept" id="lq-accept-btn" onclick="acceptLQ()">✓ Use this</button>
+          <button class="lq-btn lq-edit" id="lq-edit-btn" onclick="toggleLQEdit()">✏ Edit</button>
+          <button class="lq-btn lq-regen" onclick="regenLQ()">↻ Generate another</button>
+        </div>
+      </div>
+      <div class="err" id="lq-err"></div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" style="display:none;">
+    <div class="step-card loading-screen">
+      <div class="spinner" id="load-spinner"></div>
+      <div class="loading-title" id="load-title">Building your lesson plan...</div>
+      <div class="loading-sub" id="load-sub">Cross-referencing MTP, NC objectives and SONAR targets</div>
+      <div id="load-err" style="display:none;margin-top:20px;background:#FCEBEB;color:#A32D2D;padding:14px 18px;border-radius:10px;font-size:13px;max-width:480px;margin-left:auto;margin-right:auto;"></div>
+      <button id="load-err-back" onclick="showMode()" style="display:none;margin-top:16px;padding:10px 24px;background:transparent;border:1.5px solid #ccc;border-radius:999px;font-size:13px;cursor:pointer;font-family:inherit;">Back to menu</button>
+    </div>
+  </div>
+
+  <!-- Sequence overview -->
+  <div id="seq-screen" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:24px;" id="seq-title"></div>
+        <div style="font-size:13px;color:var(--grey-mid);" id="seq-sub"></div>
+      </div>
+      <button class="gen-all-btn" id="gen-all-btn" onclick="generateAllLessons()">Generate all PDFs →</button>
+    </div>
+    <div id="seq-list"></div>
+    <p style="font-size:12px;color:var(--grey-mid);text-align:center;margin-top:12px;">Each lesson generates and downloads as a separate PDF in your school's swimlane format.</p>
+    <button class="restart-btn" onclick="restart()">Plan something else</button>
+  </div>
+
+  <!-- Single lesson result -->
+  <div id="result" style="display:none;">
+    <div class="result-header">
+      <div>
+        <div class="result-title" id="res-title"></div>
+        <div class="result-sub" id="res-sub"></div>
+      </div>
+      <button class="dl-btn" id="dl-btn" onclick="downloadSinglePDF()">⬇ Download Word doc</button>
+    </div>
+    <div id="res-body"></div>
+    <button class="restart-btn" onclick="restart()">Plan another lesson</button>
+  </div>
+
+</main>
+<script>
+let API_KEY = localStorage.getItem('dgps_api_key')||'';
+const RENDER = 'https://dgps-planning-tool.onrender.com';
+
+const MTP={'FS1':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'partial','3.1':'partial','3.2':'missing'},'FS2':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'partial','3.1':'partial','3.2':'missing'},'Year 1':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'found','3.1':'missing','3.2':'missing'},'Year 2':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'found','3.1':'found','3.2':'missing'},'Year 3':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'found','3.1':'found','3.2':'missing'},'Year 4':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'found','3.1':'partial','3.2':'missing'},'Year 5':{'1.1':'missing','1.2':'missing','2.1':'found','2.2':'partial','3.1':'missing','3.2':'missing'},'Year 6':{'1.1':'missing','1.2':'found','2.1':'found','2.2':'found','3.1':'found','3.2':'missing'}};
+const MTP_MSG={found:{cls:'mtp-found',icon:'✓',text:"MTP uploaded — plan cross-referenced against your school's unit sequence."},partial:{cls:'mtp-partial',icon:'◑',text:'MTP partially complete — plan uses available content and fills gaps from NC.'},missing:{cls:'mtp-missing',icon:'○',text:'No MTP for this term — plan built from National Curriculum and SONAR objectives.'}};
+
+const STEPS=[
+  {id:'yearGroup',label:'Year group',question:'Which year group?',hint:'FS1–FS2 use Development Matters. Year 1–6 use National Curriculum.',type:'chips',multi:false,opts:['FS1','FS2','Year 1','Year 2','Year 3','Year 4','Year 5','Year 6']},
+  {id:'term',label:'Term',question:'Which term?',hint:"Used to cross-reference your uploaded mid-term plans.",type:'chips',multi:false,opts:['Term 1.1','Term 1.2','Term 2.1','Term 2.2','Term 3.1','Term 3.2']},
+  {id:'subject',label:'Subject',question:'Which subject?',hint:'Select one subject.',type:'chips',multi:false,opts:['English / Literacy','Maths','Science','History','Geography']},
+  {id:'topic',label:'Topic',question:'What is the topic or unit?',hint:'Be specific — this shapes NC objective, vocabulary and activities.',type:'text',placeholder:'e.g. Adding fractions / Character description / Habitats'},
+  {id:'needs',label:'Learner needs',question:'Which learner needs are present?',hint:'Select all that apply.',type:'chips',multi:true,opts:['SEND','EAL focus','Gifted & talented','Mixed ability','Standard class']},
+  {id:'ignite',label:'Ignite idea',question:'Any ideas for the Ignite Learning opener?',hint:'Optional — leave blank and Claude will suggest one.',type:'text',placeholder:'Optional — e.g. image stimulus, whiteboard questions…',optional:true},
+];
+
+let cur=0, ans={}, mode='single', lq='', seqN=0, seqData=null, planResult=null;
+
+function show(id){const e=document.getElementById(id);if(e)e.style.display='block';}
+function hide(id){const e=document.getElementById(id);if(e)e.style.display='none';}
+function hideAll(){['key-screen','mode-screen','planner','seq-count-screen','lq-screen','loading','seq-screen','result','rev-screen'].forEach(hide);}
+
+function saveKey(){
+  const k=document.getElementById('key-inp').value.trim();
+  if(!k.startsWith('sk-ant-')){document.getElementById('key-err').className='err show';return;}
+  localStorage.setItem('dgps_api_key',k);API_KEY=k;
+  hideAll();showMode();
+}
+
+function showMode(){hideAll();show('mode-screen');}
+
+function selectMode(m,el){
+  mode=m;
+  document.querySelectorAll('.mode-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  setTimeout(()=>{
+    hideAll();
+    if(m==='revision'){show('rev-screen');}
+    else if(m==='sequence'){show('seq-count-screen');}
+    else{cur=0;ans={};show('planner');renderStep();}
+  },200);
+}
+
+function setSeqN(n,el){
+  seqN=n;
+  document.querySelectorAll('#seq-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('seq-n-inp').value=n;
+}
+
+function confirmSeqCount(){
+  const v=parseInt(document.getElementById('seq-n-inp').value)||seqN;
+  if(!v||v<2||v>12){const e=document.getElementById('seq-count-err');e.textContent='Please select or enter a number between 2 and 12.';e.className='err show';return;}
+  seqN=v;hideAll();cur=0;ans={};show('planner');renderStep();
+}
+
+function getMTP(){
+  const yg=ans.yearGroup,tm=ans.term?ans.term.replace('Term ',''):null;
+  if(!yg||!tm||!MTP[yg])return null;
+  return MTP[yg][tm]||'missing';
+}
+
+function renderCtx(){
+  const parts=[ans.yearGroup,ans.term,ans.subject].filter(Boolean);
+  document.getElementById('ctx').innerHTML=parts.length?parts.map(p=>`<span class="ctx-pill">${p}</span>`).join(''):'';
+}
+
+function renderMTP(){
+  const bar=document.getElementById('mtp-bar');
+  if(cur<2){bar.className='mtp-bar';return;}
+  const s=getMTP();if(!s){bar.className='mtp-bar';return;}
+  const m=MTP_MSG[s];bar.className=`mtp-bar show ${m.cls}`;
+  bar.innerHTML=`<strong>${m.icon} MTP:</strong> ${m.text}`;
+}
+
+function renderStep(){
+  const s=STEPS[cur];
+  const pct=Math.round((cur/STEPS.length)*100);
+  document.getElementById('prog').style.width=pct+'%';
+  document.getElementById('step-lbl').textContent=`Step ${cur+1} of ${STEPS.length}`;
+  document.getElementById('step-name').textContent=s.label;
+  renderCtx();renderMTP();
+  const saved=ans[s.id]||(s.multi?[]:'');
+  let html=`<p class="step-question">${s.question}</p>`;
+  if(s.hint)html+=`<p class="step-hint">${s.hint}</p>`;
+  if(s.type==='text'){
+    html+=`<textarea id="inp" rows="3" placeholder="${s.placeholder}">${typeof saved==='string'?saved:''}</textarea>`;
+  }else{
+    const sel=Array.isArray(saved)?saved:(saved?[saved]:[]);
+    html+=`<div class="chip-group">${s.opts.map(o=>`<div class="chip${sel.includes(o)?' on':''}" onclick="tap(this,'${o.replace(/'/g,"\\'")}',${s.multi})">${o}</div>`).join('')}</div>`;
+  }
+  document.getElementById('step-content').innerHTML=html;
+  document.getElementById('step-err').className='err';
+  document.getElementById('btn-back').style.visibility='visible';
+  document.getElementById('btn-next').textContent=cur===STEPS.length-1?(mode==='sequence'?'Generate sequence →':'Generate Learning Question →'):'Next →';
+}
+
+function tap(el,val,multi){
+  const s=STEPS[cur];
+  if(multi){
+    if(!Array.isArray(ans[s.id]))ans[s.id]=[];
+    el.classList.toggle('on');
+    const i=ans[s.id].indexOf(val);
+    if(i>-1)ans[s.id].splice(i,1);else ans[s.id].push(val);
+  }else{
+    document.querySelectorAll('#step-content .chip').forEach(c=>c.classList.remove('on'));
+    el.classList.add('on');ans[s.id]=val;
+  }
+  if(s.id==='yearGroup'||s.id==='term')renderMTP();
+}
+
+function getAns(){
+  const s=STEPS[cur];
+  if(s.type==='text'){const e=document.getElementById('inp');return e?e.value.trim():'';}
+  return ans[s.id]||(s.multi?[]:'');
+}
+
+function validate(){
+  if(STEPS[cur].optional)return true;
+  const v=getAns();
+  if(!v||(Array.isArray(v)&&!v.length)||v===''){
+    const e=document.getElementById('step-err');e.textContent='Please fill in or select at least one option.';e.className='err show';return false;
+  }return true;
+}
+
+function save(){ans[STEPS[cur].id]=getAns();}
+
+function goNext(){
+  if(!validate())return;save();
+  if(cur<STEPS.length-1){cur++;renderStep();}
+  else{mode==='sequence'?generateSequence():generateLQ();}
+}
+
+function goBack(){
+  save();
+  if(cur>0){cur--;renderStep();}
+  else if(mode==='sequence'){hideAll();show('seq-count-screen');}
+  else showMode();
+}
+
+function a(k){const x=ans[k];return Array.isArray(x)?(x.length?x.join(', '):'—'):(x||'—');}
+
+function showLoading(title,sub){
+  hideAll();
+  document.getElementById('load-title').textContent=title;
+  document.getElementById('load-sub').textContent=sub;
+  show('loading');
+}
+
+async function callClaude(prompt,maxT,attempt=1){
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:maxT,messages:[{role:'user',content:prompt}]})
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      const msg=e.error?.message||'API error '+r.status;
+      // Auto-retry up to 3 times on overload
+      if((msg.toLowerCase().includes('overload')||r.status===529||r.status===503)&&attempt<4){
+        const wait=attempt*8000;
+        const loadSub=document.getElementById('load-sub');
+        if(loadSub) loadSub.textContent=`API busy — retrying in ${wait/1000}s (attempt ${attempt} of 3)…`;
+        await new Promise(res=>setTimeout(res,wait));
+        return callClaude(prompt,maxT,attempt+1);
+      }
+      throw new Error(msg);
+    }
+    const d=await r.json();
+    if(!d.content||!d.content.length){
+      throw new Error('Empty response from API. stop_reason: '+(d.stop_reason||'unknown')+' model: '+(d.model||'unknown'));
+    }
+    return d.content.map(i=>i.text||'').join('');
+  }catch(err){
+    if(err.message&&(err.message.toLowerCase().includes('overload'))&&attempt<4){
+      const wait=attempt*8000;
+      const loadSub=document.getElementById('load-sub');
+      if(loadSub) loadSub.textContent=`API busy — retrying in ${wait/1000}s (attempt ${attempt} of 3)…`;
+      await new Promise(res=>setTimeout(res,wait));
+      return callClaude(prompt,maxT,attempt+1);
+    }
+    throw err;
+  }
+}
+
+function parseJSON(text){
+  var start=text.indexOf('{');
+  if(start===-1)throw new Error('No JSON found in response');
+  var depth=0,end=-1;
+  for(var i=start;i<text.length;i++){
+    if(text[i]==='{')depth++;
+    else if(text[i]==='}'){depth--;if(depth===0){end=i;break;}}
+  }
+  if(end===-1)throw new Error('No JSON found in response');
+  var json=text.slice(start,end+1);
+  try{return JSON.parse(json);}catch(e1){}
+  try{return JSON.parse(json.replace(/,(\s*[}\]])/g,'$1'));}catch(e2){}
+  throw new Error('Plan generated but could not be read. Please try again.');
+}
+
+// LQ
+async function generateLQ(){
+  showLoading('Generating Learning Question…','Based on your topic and year group');
+  const prompt=`Generate a Learning Question for a primary school lesson.
+Year group: ${a('yearGroup')}, Subject: ${a('subject')}, Topic: ${a('topic')}, Term: ${a('term')}
+
+Step 1 — Identify the relevant National Curriculum objective for this year group, subject and topic.
+Step 2 — Write a Learning Question directly rooted in that NC objective.
+Step 3 — Rewrite it in simple, child-friendly language appropriate for ${a('yearGroup')} pupils.
+
+Rules:
+- Start with Can, How, Why, What, or Could
+- Write as if speaking directly to the child — short, clear, accessible
+- Reflect the actual NC skill or concept being learned, not just the topic title
+- Match vocabulary and complexity to ${a('yearGroup')}
+- FS1/FS2: very simple, concrete language (e.g. "Can we find shapes around us?")
+- Year 1/2: simple sentences, familiar words (e.g. "Can we describe what the character looks like?")
+- Year 3/4: slightly more precise (e.g. "How do we add fractions with the same denominator?")
+- Year 5/6: can include subject vocabulary (e.g. "How do relative clauses help us write more precisely?")
+
+Return ONLY the Learning Question as a single sentence. No quotes, no explanation, no preamble.`;
+  try{
+    const text=await callClaude(prompt,200);
+    lq=text.trim().replace(/^["']|["']$/g,'');
+    hideAll();
+    document.getElementById('lq-text').textContent=lq;
+    const editInp=document.getElementById('lq-edit-inp');
+    if(editInp) editInp.style.display='none';
+    show('lq-screen');
+  }catch(err){
+    hideAll();show('planner');
+    document.getElementById('step-err').textContent='Could not generate LQ: '+err.message;
+    document.getElementById('step-err').className='err show';
+  }
+}
+
+function acceptLQ(){ans.lq=lq;hideAll();generatePlan();}
+
+function toggleLQEdit(){
+  const inp=document.getElementById('lq-edit-inp');
+  const txt=document.getElementById('lq-text');
+  const acceptBtn=document.getElementById('lq-accept-btn');
+  const editBtn=document.getElementById('lq-edit-btn');
+  const editing=inp.style.display==='block';
+  if(editing){
+    // Cancel edit — revert
+    inp.style.display='none';
+    txt.style.display='block';
+    editBtn.textContent='✏ Edit';
+    acceptBtn.textContent='✓ Use this';
+    acceptBtn.onclick=acceptLQ;
+  } else {
+    // Open edit
+    inp.value=lq;
+    inp.style.display='block';
+    txt.style.display='none';
+    editBtn.textContent='✕ Cancel';
+    acceptBtn.textContent='✓ Save & use';
+    acceptBtn.onclick=saveLQEdit;
+    inp.focus();
+  }
+}
+
+function saveLQEdit(){
+  const v=document.getElementById('lq-edit-inp').value.trim();
+  if(!v)return;
+  lq=v;ans.lq=v;
+  // Reset UI state before generating
+  document.getElementById('lq-edit-inp').style.display='none';
+  document.getElementById('lq-text').style.display='block';
+  hideAll();generatePlan();
+}
+
+async function regenLQ(){
+  document.getElementById('lq-text').textContent='Generating…';
+  const ei=document.getElementById('lq-edit-inp'); if(ei){ei.style.display='none'; document.getElementById('lq-text').style.display='block';}
+  const prompt=`Generate a DIFFERENT Learning Question for a primary school lesson.
+Year group: ${a('yearGroup')}, Subject: ${a('subject')}, Topic: ${a('topic')}
+Root it in the National Curriculum objective for this year group and topic, then write it in simple child-friendly language for ${a('yearGroup')} pupils.
+Start with Can, How, Why, What or Could. Short, clear, accessible — as if speaking directly to the child.
+Return ONLY the Learning Question. No quotes, no explanation.`;
+  try{
+    const text=await callClaude(prompt,150);
+    lq=text.trim().replace(/^["']|["']$/g,'');
+    document.getElementById('lq-text').textContent=lq;
+  }catch(e){document.getElementById('lq-text').textContent='Could not regenerate. Please edit manually.';}
+}
+
+// Build lesson prompt
+function buildPrompt(lessonAns,overrideLQ,extraInstruction){
+  const theLQ=overrideLQ||lessonAns.lq||'';
+  const needs=Array.isArray(lessonAns.needs)?lessonAns.needs.join(', '):(lessonAns.needs||'');
+  const isEYFS=['FS1','FS2'].includes(lessonAns.yearGroup);
+  const status=getMTP()||'missing';
+  const mtpNote={found:`MTP AVAILABLE for ${a('yearGroup')} ${a('term')}.`,partial:`MTP PARTIAL for ${a('yearGroup')} ${a('term')}.`,missing:'No MTP — use NC.'}[status];
+  return `You are an expert primary teacher educator. Generate a complete lesson plan for an international British curriculum school in Dubai. Mixed EAL and native English speakers.
+SCHOOL DOCS: UK Primary NC · MTPs FS1-Y6 · DGPS SONAR objectives. MTP: ${mtpNote}
+LESSON: Year group: ${lessonAns.yearGroup} · Term: ${lessonAns.term} · Subject: ${lessonAns.subject} · Topic: ${lessonAns.topic} · LQ: ${theLQ} · Needs: ${needs} · Duration: ${'60 minutes'} · Ignite: ${lessonAns.ignite||'suggest one'} · EYFS: ${isEYFS?'Yes - DM/SONAR/play-based':'No - NC'}
+${extraInstruction||''}
+IMPORTANT: In the Apply-Extend-Achieve phase activities, label the three personalised tasks as 1:, 2:, 3: (not A:, B:, C: or a:, b:, c:). Example: "1: Add pairs of fractions using fraction bar scaffold", "2: Add pairs without scaffold", "3: Investigation — ways to make 1 whole".
+CONCISE FORMAT: Keep all bullet points to one sentence each. Support notes max 10 words each. This plan must fit on one page.
+LANGUAGE RULES — follow strictly throughout the entire plan:
+- Never use the words 'differentiate', 'differentiated' or 'differentiation' — use 'personalise', 'personalised', 'personalisation' instead
+- Never use 'TA' or 'teaching assistant' — always use 'LSA' (Learning Support Assistant)
+- Apply these rules to every section: activity, afl, support, resources, keyQuestions
+Return ONLY valid JSON:
+{"title":"lesson title","ncObjective":"exact NC or DM objective","walt":"${theLQ}","subject":"${lessonAns.subject} · ${lessonAns.yearGroup} · ${lessonAns.term}","priorKnowledge":"one sentence only","successCriteria":["I can 1","I can 2","I can 3"],"vocabulary":["w1","w2","w3","w4","w5"],"mtpNote":"one sentence","keyQuestions":{"ignite":["q1","q2","q3"],"build":["q1","q2","q3"],"apply":["q1","q2","q3"],"prove":["q1","q2"]},"phases":{"ignite":{"activity":["b1","b2","b3","b4"],"afl":[["lbl","max 8 words"],["lbl","max 8 words"]],"support":[["SEND","max 10 words"],["EAL","max 10 words"],["G&T","max 10 words"]],"resources":["r1","r2","r3"]},"build":{"activity":["b1","b2","b3","b4","b5"],"afl":[["lbl","max 8 words"],["lbl","max 8 words"],["lbl","max 8 words"]],"support":[["SEND","max 10 words"],["EAL","max 10 words"],["G&T","max 10 words"]],"resources":["r1","r2","r3"]},"apply":{"activity":["b1","b2","b3","b4","b5"],"afl":[["lbl","max 8 words"],["lbl","max 8 words"],["lbl","max 8 words"]],"support":[["SEND","max 10 words"],["EAL","max 10 words"],["G&T","max 10 words"]],"resources":["r1","r2","r3"]},"prove":{"activity":["b1","b2"],"afl":[["lbl","max 8 words"],["lbl","max 8 words"]],"support":[["SEND","max 10 words"],["Next steps","secure: X / not yet: Y"]],"resources":["r1","r2"]}},"dubaiContext":"UAE/Dubai link or empty string"}`;
+}
+
+// Single plan
+async function generatePlan(){
+  showLoading('Building your lesson plan…','Cross-referencing MTP, NC objectives and SONAR targets');
+  try{
+    const text=await callClaude(buildPrompt(ans,null,null),4000);
+    planResult=parseJSON(text);
+    hideAll();showResult(planResult);
+  }catch(err){
+    hideAll();show('planner');
+    document.getElementById('step-err').textContent='Could not generate: '+err.message;
+    document.getElementById('step-err').className='err show';
+  }
+}
+
+// Sequence
+async function generateSequence(){
+  hideAll();
+  showLoading('Planning your lesson sequence...','Mapping '+seqN+' lessons to NC objectives for '+a('subject')+' '+a('yearGroup'));
+  var seqPrompt='Plan a sequence of '+seqN+' lessons for a British curriculum primary school in Dubai.'
+    +' Year group: '+a('yearGroup')+'. Term: '+a('term')+'. Subject: '+a('subject')+'. Topic: '+a('topic')+'. Needs: '+a('needs')+'.'
+    +' Use the NC programme of study to create a coherent sequence with clear progression.'
+    +' Your response must be a single valid JSON object and nothing else - no explanation, no markdown, no preamble.'
+    +' Use exactly this structure with '+seqN+' lessons in the array:'
+    +' {"unitTitle":"string","unitOverview":"string","ncStrand":"string","lessons":[{"lessonNumber":1,"learningQuestion":"string","ncObjective":"string","focus":"string","buildsOn":"string"}]}';
+  try{
+    var text=await callClaude(seqPrompt,3000);
+    var loadSub2=document.getElementById('load-sub');
+    if(loadSub2) loadSub2.textContent='Received response ('+text.length+' chars). First 100: '+text.substring(0,100);
+    seqData=parseJSON(text);
+    hideAll();showSeqOverview();
+  }catch(err){
+    var loadErr=document.getElementById('load-err');
+    var loadErrBack=document.getElementById('load-err-back');
+    var loadSpinner=document.getElementById('load-spinner');
+    if(loadSpinner) loadSpinner.style.display='none';
+    if(loadErr){
+      var preview=(typeof text!=='undefined'&&text)?text.substring(0,200):'(no response text)';
+      loadErr.style.display='block';
+      loadErr.innerHTML='<strong>'+err.message+'</strong><br><small style="word-break:break-all;">Response: '+preview+'</small>';
+    }
+    if(loadErrBack) loadErrBack.style.display='inline-block';
+  }
+}
+
+function showSeqOverview(){
+  document.getElementById('seq-title').textContent=seqData.unitTitle;
+  document.getElementById('seq-sub').textContent=`${a('subject')} · ${a('yearGroup')} · ${a('term')} · ${seqData.ncStrand||''}`;
+  let html='';
+  (seqData.lessons||[]).forEach((l,i)=>{
+    html+=`<div class="seq-card" id="seq-card-${i}">
+      <div class="seq-num">${l.lessonNumber}</div>
+      <div style="flex:1;">
+        <div class="seq-lq">${l.learningQuestion}</div>
+        <div class="seq-nc">${l.ncObjective}</div>
+        <div class="seq-focus">${l.focus}</div>
+      </div>
+      <div class="seq-status" id="seq-s-${i}">Pending</div>
+    </div>`;
+  });
+  document.getElementById('seq-list').innerHTML=html;
+  show('seq-screen');
+}
+
+async function generateAllLessons(){
+  const btn=document.getElementById('gen-all-btn');
+  btn.disabled=true;btn.textContent='Generating…';
+  const lessons=seqData.lessons||[];
+  for(let i=0;i<lessons.length;i++){
+    const l=lessons[i];
+    const sEl=document.getElementById(`seq-s-${i}`);
+    const cEl=document.getElementById(`seq-card-${i}`);
+    sEl.textContent='Generating…';sEl.className='seq-status active';
+    cEl.style.borderColor='var(--amber)';
+    const extra=`LANGUAGE RULES: Never use 'differentiate/differentiated/differentiation' — use 'personalise/personalised' instead. Never use 'TA' — always use 'LSA'. IMPORTANT: This is lesson ${l.lessonNumber} of ${lessons.length}. NC objective for THIS lesson: "${l.ncObjective}". Prior knowledge: "${l.buildsOn}". Use this exact NC objective.`;
+    try{
+      const text=await callClaude(buildPrompt({...ans,lq:l.learningQuestion},l.learningQuestion,extra),4000);
+      const plan=parseJSON(text);
+      plan.lessonNumber=l.lessonNumber;
+      sEl.textContent='Downloading PDF…';
+      await sendToPDF(plan,i+1);
+      sEl.textContent=`✓ PDF downloaded`;sEl.className='seq-status done';
+      cEl.style.borderColor='var(--teal)';
+      if(i<lessons.length-1)await new Promise(r=>setTimeout(r,1500));
+    }catch(err){
+      sEl.textContent='✗ Failed';sEl.className='seq-status';
+      cEl.style.borderColor='var(--coral)';
+      console.error(`Lesson ${i+1} error:`,err);
+    }
+  }
+  btn.textContent='✓ All PDFs generated';btn.style.background='var(--teal-dk)';
+}
+
+async function sendToPDF(plan,num){
+  const body={
+    title:plan.title,subject:plan.subject||(a('subject')+' · '+a('yearGroup')+' · '+a('term')),
+    yearGroup:a('yearGroup'),term:a('term'),walt:plan.walt||ans.lq||'',
+    ncObjective:plan.ncObjective||'',mtpNote:plan.mtpNote||'',
+    priorKnowledge:plan.priorKnowledge||'',successCriteria:plan.successCriteria||[],
+    vocabulary:plan.vocabulary||[],needs:ans.needs||[],duration:a('duration'),
+    keyQuestions:plan.keyQuestions||{},phases:plan.phases||{},dubaiContext:plan.dubaiContext||'',
+  };
+  const r=await fetch(`${RENDER}/generate-pdf`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error('PDF server error '+r.status);
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const a2=document.createElement('a');
+  a2.href=url;
+  const safe=(plan.title||'lesson').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a2.download=`DGPS_L${num}_${safe}.docx`;
+  document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
+  URL.revokeObjectURL(url);
+}
+
+async function downloadSinglePDF(){
+  if(!planResult)return;
+  const btn=document.getElementById('dl-btn');
+  btn.textContent='⏳ Generating Word doc…';btn.disabled=true;
+  try{
+    await sendToPDF(planResult,1);
+    btn.textContent='✓ Word doc downloaded!';
+    setTimeout(()=>{btn.textContent='⬇ Download Word doc';btn.disabled=false;},3000);
+  }catch(err){
+    btn.textContent='✗ Failed — try again';btn.disabled=false;
+    setTimeout(()=>{btn.textContent='⬇ Download Word doc';},3000);
+  }
+}
+
+function showResult(p){
+  const phCfg=[
+    {key:'ignite',label:'1 · Ignite Learning',hdr:'#EEEDFE',txt:'#26215C'},
+    {key:'build',label:'2 · Build-Release-Refine',hdr:'#E1F5EE',txt:'#085041'},
+    {key:'apply',label:'3 · Apply-Extend-Achieve',hdr:'#FAEEDA',txt:'#633806'},
+    {key:'prove',label:'4 · Prove It!',hdr:'#FAECE7',txt:'#712B13'},
+  ];
+  document.getElementById('res-title').textContent=p.title;
+  document.getElementById('res-sub').textContent=`${p.subject||''} · 60 minutes`;
+  let html=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+    <span class="ph-pill ph1">1 · Ignite Learning</span>
+    <span class="ph-pill ph2">2 · Build-Release-Refine</span>
+    <span class="ph-pill ph3">3 · Apply-Extend-Achieve</span>
+    <span class="ph-pill ph4">4 · Prove It!</span>
+  </div>`;
+  if(p.mtpNote)html+=`<div class="plan-sec" style="background:var(--teal-lt);border-color:var(--teal);"><div class="plan-sec-label" style="color:var(--teal-dk);">✓ MTP</div><div class="plan-sec-body">${p.mtpNote}</div></div>`;
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div class="plan-sec"><div class="plan-sec-label">Prior Knowledge</div><div class="plan-sec-body">${p.priorKnowledge||''}</div></div>
+    <div class="plan-sec"><div class="plan-sec-label">Success Criteria</div><div class="plan-sec-body"><ul>${(p.successCriteria||[]).map(s=>`<li>${s}</li>`).join('')}</ul></div></div>
+    <div class="plan-sec"><div class="plan-sec-label">Key Vocabulary</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;margin-top:4px;">${(p.vocabulary||[]).map(v=>`<div style="font-size:13.5px;padding:2px 0;">&#x25CF; ${v}</div>`).join('')}</div></div>
+  </div>`;
+  phCfg.forEach(ph=>{
+    const phase=(p.phases||{})[ph.key];if(!phase)return;
+    html+=`<div class="phase-block">
+      <div class="phase-hdr" style="background:${ph.hdr};color:${ph.txt};">${ph.label}</div>
+      <div class="phase-body">
+        <div class="phase-col"><div class="phase-col-label" style="color:${ph.txt};">Activity</div><div class="phase-col-body"><ul>${(phase.activity||[]).map(b=>`<li>${b}</li>`).join('')}</ul></div></div>
+        <div class="phase-col"><div class="phase-col-label" style="color:${ph.txt};">AfL Activities</div><div class="phase-col-body">${(phase.afl||[]).map(([l,t])=>`<p style="margin-bottom:5px;"><strong>${l}</strong> ${t}</p>`).join('')}</div></div>
+        <div class="phase-col"><div class="phase-col-label" style="color:${ph.txt};">Support & Adapt</div><div class="phase-col-body">${(phase.support||[]).map(([l,t])=>`<p style="margin-bottom:5px;"><strong>${l}</strong> ${t}</p>`).join('')}</div></div>
+        <div class="phase-col"><div class="phase-col-label" style="color:${ph.txt};">Suggested Resources</div><div class="phase-col-body"><ul>${(phase.resources||[]).map(r=>`<li>${r}</li>`).join('')}</ul></div></div>
+      </div>
+    </div>`;
+  });
+  const kqCfg=[{key:'ignite',label:'1 · Ignite',bg:'#EEEDFE',color:'#26215C'},{key:'build',label:'2 · Build',bg:'#E1F5EE',color:'#085041'},{key:'apply',label:'3 · Apply',bg:'#FAEEDA',color:'#633806'},{key:'prove',label:'4 · Prove It!',bg:'#FAECE7',color:'#712B13'}];
+  html+=`<div class="plan-sec"><div class="plan-sec-label">Key Questions to Ask</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px;">
+    ${kqCfg.map(q=>`<div><div style="background:${q.bg};color:${q.color};font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:8px;display:inline-block;">${q.label}</div>${((p.keyQuestions||{})[q.key]||[]).map(qs=>`<p style="font-size:12px;color:var(--grey-mid);font-style:italic;margin-bottom:5px;line-height:1.5;">'${qs}'</p>`).join('')}</div>`).join('')}
+  </div></div>`;
+  if(p.dubaiContext)html+=`<div class="plan-sec" style="border-left:3px solid var(--teal);border-radius:0 10px 10px 0;background:var(--teal-lt);"><div class="plan-sec-label">Dubai / UAE Context</div><div class="plan-sec-body">${p.dubaiContext}</div></div>`;
+  document.getElementById('res-body').innerHTML=html;
+  show('result');
+}
+
+function restart(){
+  cur=0;ans={};mode='single';lq='';seqN=0;seqData=null;planResult=null;
+  hideAll();showMode();
+}
+
+
+var PT={
+'Year 2':{
+'English / Literacy':[{n:'Phonic knowledge',g:69,s:63},{n:'Spelling',g:73,s:63},{n:'Grammar and Punctuation',g:81,s:63},{n:'Reading Comprehension',g:71,s:52},{n:'RC Retrieval',g:74,s:45},{n:'RC Inference',g:75,s:58},{n:'RC Authorial Technique',g:56,s:41}],
+'Maths':[{n:'Number',g:79,s:53},{n:'Measurement',g:77,s:55},{n:'Geometry',g:66,s:44},{n:'Statistics',g:79,s:52}]
+},
+'Year 3':{
+'English / Literacy':[{n:'Spelling',g:75,s:63},{n:'Grammar and Punctuation',g:87,s:59},{n:'RC Narrative',g:71,s:57},{n:'RC Non-Narrative',g:63,s:35},{n:'RC Authorial Technique',g:66,s:53},{n:'RC Retrieval',g:82,s:53},{n:'RC Inference',g:66,s:53},{n:'RC Complex Inference',g:58,s:41}],
+'Maths':[{n:'Number',g:73,s:48},{n:'Measurement',g:67,s:46},{n:'Geometry',g:53,s:43},{n:'Statistics',g:88,s:48}],
+'Science':[{n:'Biology',g:87,s:61},{n:'Chemistry',g:84,s:59},{n:'Physics',g:88,s:66}]
+},
+'Year 4':{
+'English / Literacy':[{n:'Spelling',g:67,s:62},{n:'Grammar and Punctuation',g:57,s:45},{n:'RC Narrative',g:49,s:47},{n:'RC Non-Narrative',g:64,s:48},{n:'RC Authorial Technique',g:67,s:61},{n:'RC Retrieval',g:36,s:25},{n:'RC Inference',g:60,s:55},{n:'RC Complex Inference',g:42,s:41}],
+'Maths':[{n:'Number',g:70,s:62},{n:'Measurement',g:53,s:47},{n:'Geometry',g:64,s:40},{n:'Statistics',g:94,s:63}],
+'Science':[{n:'Biology',g:81,s:58},{n:'Chemistry',g:86,s:63},{n:'Physics',g:83,s:58}]
+},
+'Year 5':{
+'English / Literacy':[{n:'Spelling',g:64,s:52},{n:'Grammar and Punctuation',g:83,s:67},{n:'RC Narrative',g:63,s:52},{n:'RC Non-Narrative',g:67,s:45},{n:'RC Authorial Technique',g:50,s:35},{n:'RC Retrieval',g:68,s:49},{n:'RC Inference',g:82,s:68},{n:'RC Complex Inference',g:51,s:39}],
+'Maths':[{n:'Number',g:73,s:54},{n:'Measurement',g:66,s:36},{n:'Geometry',g:75,s:51},{n:'Statistics',g:84,s:66}],
+'Science':[{n:'Biology',g:88,s:58},{n:'Chemistry',g:82,s:53},{n:'Physics',g:91,s:67}]
+},
+'Year 6':{
+'English / Literacy':[{n:'Spelling',g:93,s:66},{n:'Grammar and Punctuation',g:73,s:49},{n:'RC Narrative',g:66,s:43},{n:'RC Non-Narrative',g:72,s:43},{n:'RC Authorial Technique',g:68,s:38},{n:'RC Retrieval',g:70,s:44},{n:'RC Inference',g:71,s:44},{n:'RC Complex Inference',g:61,s:46}],
+'Maths':[{n:'Number',g:72,s:53},{n:'Ratio and Proportion',g:52,s:31},{n:'Algebra',g:75,s:53},{n:'Measurement',g:54,s:43},{n:'Geometry',g:77,s:49},{n:'Statistics',g:84,s:59}],
+'Science':[{n:'Biology',g:88,s:68},{n:'Chemistry',g:86,s:63},{n:'Physics',g:88,s:59}]
+}
+};
+var rvYear='',rvSubj='',rvStrand='';
+function rvY(y,el){
+  rvYear=y; rvStrand='';
+  document.querySelectorAll('#rv-y .chip').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  var sci=document.getElementById('rv-sci');
+  if(sci){sci.style.display=(y==='Year 2')?'none':'';}
+  if(y==='Year 2'&&rvSubj==='Science'){rvSubj='';document.querySelectorAll('#rv-s .chip').forEach(function(c){c.classList.remove('on');});}
+  rvRender();
+}
+function rvS(s,el){
+  rvSubj=s; rvStrand='';
+  document.querySelectorAll('#rv-s .chip').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  rvRender();
+}
+function rvRender(){
+  var box=document.getElementById('rv-strands');
+  var chips=document.getElementById('rv-sc');
+  if(!rvYear||!rvSubj||!PT[rvYear]||!PT[rvYear][rvSubj]){box.style.display='none';return;}
+  var strands=PT[rvYear][rvSubj].slice().sort(function(a,b){return a.g-b.g;});
+  chips.innerHTML='';
+  for(var i=0;i<strands.length;i++){
+    (function(strand,rank){
+      var c=document.createElement('div');
+      c.className='chip';
+      var weak=(rank<3);
+      if(weak){c.style.borderColor='#C2410C';c.style.color='#712B13';c.style.background='#FCEBEB';}
+      c.textContent=(weak?'* ':'')+strand.n+' ('+strand.g+'%)';
+      c.onclick=function(){
+        var all=document.querySelectorAll('#rv-sc .chip');
+        for(var j=0;j<all.length;j++){all[j].classList.remove('on');all[j].style.background=(all[j].textContent.charAt(0)==='*')?'#FCEBEB':'';}
+        c.classList.add('on');
+        c.style.background='var(--teal-lt)';
+        rvStrand=strand.n;
+        document.getElementById('rv-custom').value='';
+      };
+      chips.appendChild(c);
+    })(strands[i],i);
+  }
+  box.style.display='block';
+}
+function rvGo(){
+  var err=document.getElementById('rv-err');
+  err.textContent='';err.className='err';
+  if(!rvYear){err.textContent='Please select a year group.';err.className='err show';return;}
+  if(!rvSubj){err.textContent='Please select a subject.';err.className='err show';return;}
+  var custom=document.getElementById('rv-custom').value.trim();
+  var focus=rvStrand||custom;
+  if(!focus){err.textContent='Please select a strand or type a focus.';err.className='err show';return;}
+  ans={yearGroup:rvYear,term:'Term 1.1',subject:rvSubj,topic:'Revision of '+focus,needs:['Mixed ability'],ignite:''};
+  mode='single';
+  generateLQ();
+}
+
+// Init
+API_KEY?showMode():show('key-screen');
+</script>
+</body>
+</html>
